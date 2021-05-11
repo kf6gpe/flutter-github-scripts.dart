@@ -3,20 +3,18 @@ import 'package:flutter_github_scripts/github_queries.dart';
 import 'package:args/args.dart';
 import 'dart:io';
 
+import 'package:test/test.dart';
+
 class Options {
   final _parser = ArgParser(allowTrailingOptions: false);
-  ArgResults _results;
-  bool get between => _results['between'];
-  bool get tsv => _results['tsv'];
-  DateTime get from =>
-      _results.rest != null ? DateTime.parse(_results.rest[0]) : null;
-  DateTime get to =>
-      _results.rest != null ? DateTime.parse(_results.rest[1]) : null;
-  int get exitCode => _results == null
-      ? -1
-      : _results['help']
-          ? 0
-          : null;
+  late ArgResults _results;
+  bool get between => _results['between']!;
+  bool get tsv => _results['tsv']!;
+  DateTime? get from =>
+      _results.rest.length > 0 ? DateTime.parse(_results.rest[0]) : null;
+  DateTime? get to =>
+      _results.rest.length > 1 ? DateTime.parse(_results.rest[1]) : null;
+  int? get exitCode => _results['help'] ? 0 : null;
 
   Options(List<String> args) {
     _parser
@@ -33,7 +31,7 @@ class Options {
       _results = _parser.parse(args);
       if (_results['help']) _printUsage();
       if (_results['between'] && _results.rest.length != 2)
-        throw ('--between requires two dates in ISO format');
+        throw ArgParserException('--between requires two dates in ISO format');
     } on ArgParserException catch (e) {
       print(e.message);
       _printUsage();
@@ -52,7 +50,7 @@ class Options {
 
 void main(List<String> args) async {
   final opts = Options(args);
-  if (opts.exitCode != null) exit(opts.exitCode);
+  if (opts.exitCode != null) exit(opts.exitCode!);
 
   final token = Platform.environment['GITHUB_TOKEN'];
   final github = GitHub(token);
@@ -60,7 +58,7 @@ void main(List<String> args) async {
   GitHubIssueType type = GitHubIssueType.issue;
 
   final states = [GitHubIssueState.open, GitHubIssueState.closed];
-  var items = [];
+  var items = List<dynamic>();
 
   for (var state in states) {
     items.addAll(await github.fetch(

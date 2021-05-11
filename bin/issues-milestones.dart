@@ -6,15 +6,11 @@ import 'dart:io';
 
 class Options {
   final _parser = ArgParser(allowTrailingOptions: false);
-  ArgResults _results;
-  bool get showClosed => _results['closed'];
+  late ArgResults _results;
+  bool get showClosed => _results['closed']!;
   DateTime get from => DateTime.parse(_results.rest[0]);
   DateTime get to => DateTime.parse(_results.rest[1]);
-  int get exitCode => _results == null
-      ? -1
-      : _results['help']
-          ? 0
-          : null;
+  int? get exitCode => _results['help'] ? 0 : null;
 
   Options(List<String> args) {
     _parser
@@ -29,10 +25,11 @@ class Options {
       _results = _parser.parse(args);
       if (_results['help']) _printUsage();
       if (_results['closed'] && _results.rest.length != 2)
-        throw ('need start and end dates!');
+        throw ArgParserException('need start and end dates!');
     } on ArgParserException catch (e) {
       print(e.message);
       _printUsage();
+      exit(-1);
     }
   }
 
@@ -47,12 +44,12 @@ class Options {
 
 void main(List<String> args) async {
   final opts = Options(args);
-  if (opts.exitCode != null) exit(opts.exitCode);
+  if (opts.exitCode != null) exit(opts.exitCode!);
 
   // Find the list of folks we're interested in
   final orgReportsContents = File('org-reports.csv').readAsStringSync();
   final orgReports = const CsvToListConverter().convert(orgReportsContents);
-  var interesting = <String>[];
+  var interesting = List<String>();
   orgReports.forEach((row) {
     if (row[1].toString().toUpperCase() == 'Y')
       interesting.add(row[0].toString());
@@ -64,7 +61,7 @@ void main(List<String> args) async {
   final github = GitHub(token);
 
   var state = GitHubIssueState.open;
-  DateRange when = null;
+  DateRange? when = null;
   var rangeType = GitHubDateQueryType.none;
   if (opts.showClosed) {
     state = GitHubIssueState.closed;
@@ -72,7 +69,7 @@ void main(List<String> args) async {
     rangeType = GitHubDateQueryType.closed;
   }
 
-  var issues = [];
+  var issues = List<dynamic>();
   for (var repo in repos) {
     issues.addAll(await github.fetch(
         owner: 'flutter',

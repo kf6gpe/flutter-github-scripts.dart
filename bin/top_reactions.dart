@@ -7,13 +7,9 @@ import 'dart:io';
 
 class Options {
   final _parser = ArgParser(allowTrailingOptions: false);
-  ArgResults _results;
+  late ArgResults _results;
   bool get onlyUnprioritized => _results['only-unprioritized'];
-  int get exitCode => _results == null
-      ? -1
-      : _results['help']
-          ? 0
-          : null;
+  int? get exitCode => _results['help'] ? 0 : null;
 
   Options(List<String> args) {
     _parser
@@ -30,6 +26,7 @@ class Options {
     } on ArgParserException catch (e) {
       print(e.message);
       _printUsage();
+      exit(-1);
     }
   }
 
@@ -44,7 +41,7 @@ var skipLabels = ['P0', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6'];
 
 void main(List<String> args) async {
   final opts = Options(args);
-  if (opts.exitCode != null) exit(opts.exitCode);
+  if (opts.exitCode != null) exit(opts.exitCode!);
   final github = GitHub(token);
 
 /* Replace this with a fetch

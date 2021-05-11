@@ -6,21 +6,17 @@ import 'package:intl/intl.dart';
 
 class Options {
   final _parser = ArgParser(allowTrailingOptions: false);
-  ArgResults _results;
-  String get release => _results['release'];
+  late ArgResults _results;
+  String get release => _results['release']!;
   bool get html =>
       _results['formatted'] == false && _results['summary'] == false
           ? true
           : _results['formatted'];
-  bool get summary =>
+  bool /*!*/ get summary =>
       _results['formatted'] == false && _results['summary'] == false
           ? true
           : _results['summary'];
-  int get exitCode => _results == null
-      ? -1
-      : _results['help']
-          ? 0
-          : null;
+  int? get exitCode => _results['help'] ? 0 : null;
   Options(List<String> args) {
     _parser
       ..addFlag('help',
@@ -28,16 +24,17 @@ class Options {
       ..addFlag('formatted', abbr: 'f', help: 'show html format')
       ..addFlag('summary', abbr: 's', help: 'show summary (TSV)')
       ..addOption('release',
-          abbr: 'r', help: 'release to scan for cherrypick requests');
+          mandatory: true,
+          abbr: 'r',
+          help: 'release to scan for cherrypick requests');
 
     try {
       _results = _parser.parse(args);
       if (_results['help']) _printUsage();
-      if (_results['release'] == null)
-        throw (ArgParserException('Need a version!'));
     } on ArgParserException catch (e) {
       print(e.message);
       _printUsage();
+      exit(-1);
     }
   }
 
@@ -48,7 +45,7 @@ class Options {
   }
 }
 
-String hotfixSummary(Issue issue, String repository) {
+String hotfixSummary(Issue issue, String? repository) {
   var result = '';
   var formatter = DateFormat('MM/dd/yy');
   var created = formatter.format(issue.createdAt);
@@ -70,7 +67,7 @@ String hotfixSummary(Issue issue, String repository) {
 
 void main(List<String> args) async {
   final opts = Options(args);
-  if (opts.exitCode != null) exit(opts.exitCode);
+  if (opts.exitCode != null) exit(opts.exitCode!);
   final token = Platform.environment['GITHUB_TOKEN'];
   final github = GitHub(token);
   var release = opts.release;
@@ -86,8 +83,8 @@ void main(List<String> args) async {
   var flutterIssuesStream = await github.searchIssuePRs(flutterQuery);
   var dartIssuesStream = await github.searchIssuePRs(dartQuery);
 
-  List<Issue> flutterIssues = [];
-  List<Issue> dartIssues = [];
+  List<Issue /*!*/ > flutterIssues = [];
+  List<Issue /*!*/ > dartIssues = [];
   await for (var issue in flutterIssuesStream) {
     flutterIssues.add(issue);
   }
